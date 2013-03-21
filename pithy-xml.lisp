@@ -459,15 +459,15 @@ newline and indentation. The syntax is approximately like that of CL-WHO."
     (let ((stream-ef (let ((ef (or (ignore-errors (stream-external-format stream))
 				   (return-from default-set-external-format
 				     (warn "Unable to determine if stream ~S is compatible with encoding ~S." stream encoding)))))
-		       (string (if (listp ef) (car ef) ef)))))
+		       (if (listp ef) (car ef) ef))))
       (unless (find encoding
 		    (case stream-ef
-		      ((:latin1) "iso-8859-1")
-		      (otherwise (list stream-ef)))
+		      ((:latin1 :latin-1) '("iso-8859-1"))
+		      (t (list (string stream-ef))))
 		    :test #'string-equal)
 	(cerror "Ignore XML document encoding."
 		"Stream encoding ~S appears incompatible with XML document encoding ~S."
-		stream-ef
+		(string stream-ef)
 		encoding)))))
 
 (defun xml-file-encoding (path)
@@ -477,8 +477,10 @@ newline and indentation. The syntax is approximately like that of CL-WHO."
       (when (typep declaration '(xml-element :?xml))
 	(let ((encoding (getf (cdar declaration) :encoding)))
 	  (when encoding
-	    (values (intern (string-upcase encoding)
-			    :keyword))))))))
+            (if (string-equal encoding "iso-8859-1")
+                :latin-1
+              (values (intern (string-upcase encoding)
+                              :keyword)))))))))
 
 (defun read-xml-file (path &key (external-format (xml-file-encoding path)) (type 'xml-element)
 		      ((:xml-entities *xml-entities*) *xml-entities*))
